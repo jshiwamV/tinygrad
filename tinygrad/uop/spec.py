@@ -190,8 +190,10 @@ shared_codegen_spec = PatternMatcher([
   # INDEX is just address calculation. OOB validation is on LOAD/STORE where the gate is available.
   (UPat(GroupOp.Defines|{Ops.AFTER}).index(UPat()), lambda: True),
 
-  # SPECIAL
-  (UPat(Ops.SPECIAL, src=(UPat.var("x", (dtypes.weakint, dtypes.int32)),), name="s"), lambda s,x: s.dtype == x.dtype and isinstance(s.arg, str)),
+  # SPECIAL: arg is "{g|l}{0|1|2}" — prefix selects global/local id, suffix is the dim index.
+  # All GPU dispatch APIs limit the work-item index space to 3 dims (x,y,z); see Renderer.global_max/local_max.
+  (UPat(Ops.SPECIAL, src=(UPat.var("x", (dtypes.weakint, dtypes.int32)),), name="s"),
+   lambda s,x: s.dtype == x.dtype and isinstance(s.arg, str) and len(s.arg) >= 2 and s.arg[0] in ("g", "l") and s.arg[-1] in ("0", "1", "2")),
 
   # BARRIER (on any length)
   (UPat(Ops.BARRIER, dtypes.void), lambda: True),
